@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 模組化精緻皮影戲偶生成系統</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: #0b0f19;
+            color: #f8fafc;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .control-panel {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            max-width: 700px;
+        }
+        input[type="text"] {
+            padding: 12px;
+            font-size: 16px;
+            width: 380px;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #fff;
+            outline: none;
+        }
+        button {
+            padding: 12px 18px;
+            font-size: 16px;
+            margin-left: 6px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn-send { background: #3b82f6; color: white; }
+        .btn-send:hover { background: #2563eb; }
+        .btn-mic { background: #ef4444; color: white; }
+        .btn-mic:hover { background: #dc2626; }
+        
+        #status {
+            font-size: 17px;
+            color: #38bdf8;
+            margin: 10px 0 15px 0;
+            min-height: 24px;
+            font-weight: bold;
+        }
+
+        #stage {
+            width: 560px;
+            height: 600px;
+            border: 3px solid #334155;
+            margin: 0 auto;
+            background: radial-gradient(circle, #1e293b 0%, #05070a 100%);
+            border-radius: 16px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.95);
+        }
+
+        svg path, svg g, svg polygon, svg circle {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>模組化皮影戲偶 AI 語意組裝系統</h1>
+    <p style="color: #94a3b8; margin-top: 0; font-size: 14px;">支援自由切換角色、帽子、衣服、褲子與左右手道具（例如：「拿大刀的紅甲將軍」、「拿法杖的書生」）</p>
+    
+    <div class="control-panel">
+        <input type="text" id="textInput" placeholder="請輸入完整外觀描述..." onkeypress="if(event.key==='Enter') handleInput()">
+        <button class="btn-send" onclick="handleInput()">組裝人偶</button>
+        <button class="btn-mic" onclick="startVoice()">🎤 語音輸入</button>
+    </div>
+
+    <div id="status">系統就緒，請輸入描述</div>
+
+    <div id="stage">
+        <!-- 多層模組化 SVG 戲偶容器 -->
+        <svg width="320" height="520" viewBox="0 0 160 320" id="puppetSvg">
+            <defs>
+                <!-- 傳統簍空雕花紋理 -->
+                <pattern id="carvingPattern" width="6" height="6" patternUnits="userSpaceOnUse">
+                    <circle cx="3" cy="3" r="1.5" fill="#0b0f19" opacity="0.8"/>
+                </pattern>
+            </defs>
+
+            <!-- 舞台操縱支架 -->
+            <line x1="80" y1="10" x2="80" y2="310" stroke="#71717a" stroke-width="3" stroke-dasharray="6,4"/>
+
+            <!-- 1. 頭部與帽子圖層 (Head & Crown Layer) -->
+            <g id="layerHead">
+                <!-- 預設京劇將軍頭面與冠 -->
+                <path d="M 60 40 Q 80 25 100 40 Q 110 65 100 85 Q 80 95 60 85 Q 50 65 60 40 Z" fill="#d97706" stroke="#fbbf24" stroke-width="2"/>
+                <circle cx="70" cy="55" r="3" fill="#0b0f19"/>
+                <circle cx="90" cy="55" r="3" fill="#0b0f19"/>
+                <!-- 帽子/冠 -->
+                <path d="M 45 35 L 80 5 L 115 35 L 105 45 L 55 45 Z" fill="#fbbf24" stroke="#78350f" stroke-width="2"/>
+                <path d="M 70 5 Q 80 -10 90 5 Z" fill="#ef4444"/>
+            </g>
+
+            <!-- 2. 軀幹與衣服/戰甲圖層 (Body & Armor Layer) -->
+            <g id="layerBody">
+                <path d="M 50 85 L 110 85 L 125 185 L 35 185 Z" fill="#991b1b" stroke="#fbbf24" stroke-width="2.5"/>
+                <path d="M 58 93 L 102 93 L 115 175 L 45 175 Z" fill="url(#carvingPattern)" stroke="#fbbf24" stroke-width="1"/>
+                <circle cx="80" cy="135" r="12" fill="#fbbf24" stroke="#78350f" stroke-width="2"/>
+            </g>
+
+            <!-- 3. 褲子/裙甲圖層 (Legs & Pants Layer) -->
+            <g id="layerLegs">
+                <line x1="60" y1="185" x2="45" y2="275" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+                <line x1="100" y1="185" x2="115" y2="275" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+                <!-- 預設武將戰裙/褲 -->
+                <path id="pantsStyle" d="M 45 185 L 115 185 L 120 220 L 40 220 Z" fill="#b91c1c" stroke="#fbbf24" stroke-width="2"/>
+                <!-- 靴子 -->
+                <path d="M 32 275 L 52 275 L 48 290 L 30 290 Z" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
+                <path d="M 108 275 L 128 275 L 130 290 L 110 290 Z" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
+            </g>
+
+            <!-- 4. 左手與左手道具圖層 -->
+            <g id="layerLeftArm">
+                <line x1="50" y1="98" x2="20" y2="155" stroke="#fbbf24" stroke-width="5" stroke-linecap="round"/>
+                <g id="leftPropSlot" transform="translate(15, 145)"></g>
+            </g>
+
+            <!-- 5. 右手與右手道具圖層 -->
+            <g id="layerRightArm">
+                <line x1="110" y1="98" x2="140" y2="155" stroke="#fbbf24" stroke-width="5" stroke-linecap="round"/>
+                <g id="rightPropSlot" transform="translate(140, 145)"></g>
+            </g>
+        </svg>
+    </div>
+
+<script>
+    function handleInput() {
+        const text = document.getElementById('textInput').value.trim();
+        if(!text) return;
+        buildPuppet(text);
+    }
+
+    function buildPuppet(inputStr) {
+        const statusEl = document.getElementById('status');
+        const layerHead = document.getElementById('layerHead');
+        const layerBody = document.getElementById('layerBody');
+        const layerLegs = document.getElementById('layerLegs');
+        const leftPropSlot = document.getElementById('leftPropSlot');
+        const rightPropSlot = document.getElementById('rightPropSlot');
+
+        statusEl.innerText = `正在深度解析與組裝：「${inputStr}」`;
+
+        // -------------------------------------------------------------------------
+        // 1. 角色與頭部/帽子解析 (Head & Hat)
+        // -------------------------------------------------------------------------
+        if (inputStr.includes('書生') || inputStr.includes('文人')) {
+            layerHead.innerHTML = `
+                <path d="M 62 42 Q 80 30 98 42 Q 104 60 98 78 Q 80 85 62 78 Q 56 60 62 42 Z" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+                <circle cx="72" cy="52" r="2" fill="#0b0f19"/>
+                <circle cx="88" cy="52" r="2" fill="#0b0f19"/>
+                <!-- 書生平頭冠 -->
+                <path d="M 60 38 L 80 22 L 100 38 L 92 46 L 68 46 Z" fill="#1e3a8a" stroke="#93c5fd" stroke-width="2"/>
+            `;
+        } else if (inputStr.includes('猴') || inputStr.includes('孫悟空') || inputStr.includes('齊天')) {
+            layerHead.innerHTML = `
+                <!-- 猴子頭型與金箍 -->
+                <path d="M 58 45 Q 80 25 102 45 Q 112 65 100 85 Q 80 98 60 85 Q 48 65 58 45 Z" fill="#b45309" stroke="#f59e0b" stroke-width="2"/>
+                <circle cx="70" cy="58" r="3.5" fill="#0b0f19"/>
+                <circle cx="90" cy="58" r="3.5" fill="#0b0f19"/>
+                <!-- 金箍圈 -->
+                <path d="M 55 42 L 105 42 L 102 52 L 58 52 Z" fill="#fbbf24" stroke="#b45309" stroke-width="1.5"/>
+            `;
+        } else {
+            // 預設將軍頭盔
+            layerHead.innerHTML = `
+                <path d="M 60 40 Q 80 25 100 40 Q 110 65 100 85 Q 80 95 60 85 Q 50 65 60 40 Z" fill="#d97706" stroke="#fbbf24" stroke-width="2"/>
+                <circle cx="70" cy="55" r="3" fill="#0b0f19"/>
+                <circle cx="90" cy="55" r="3" fill="#0b0f19"/>
+                <path d="M 45 35 L 80 5 L 115 35 L 105 45 L 55 45 Z" fill="#fbbf24" stroke="#78350f" stroke-width="2"/>
+                <path d="M 70 5 Q 80 -10 90 5 Z" fill="#ef4444"/>
+            `;
+        }
+
+        // -------------------------------------------------------------------------
+        // 2. 衣服/戰甲顏色與材質解析 (Body & Clothes)
+        // -------------------------------------------------------------------------
+        let bodyColor = '#991b1b'; // 預設紅
+        if (inputStr.includes('藍') || inputStr.includes('書生')) bodyColor = '#1e3a8a';
+        else if (inputStr.includes('金') || inputStr.includes('黃')) bodyColor = '#b45309';
+        else if (inputStr.includes('黑') || inputStr.includes('夜行')) bodyColor = '#18181b';
+        else if (inputStr.includes('綠') || inputStr.includes('青')) bodyColor = '#065f46';
+
+        layerBody.innerHTML = `
+            <path d="M 50 85 L 110 85 L 125 185 L 35 185 Z" fill="${bodyColor}" stroke="#fbbf24" stroke-width="2.5"/>
+            <path d="M 58 93 L 102 93 L 115 175 L 45 175 Z" fill="url(#carvingPattern)" stroke="#fbbf24" stroke-width="1"/>
+            <circle cx="80" cy="135" r="12" fill="#fbbf24" stroke="#78350f" stroke-width="2"/>
+        `;
+
+        // -------------------------------------------------------------------------
+        // 3. 褲子/裙甲解析 (Legs & Pants)
+        // -------------------------------------------------------------------------
+        let pantsColor = bodyColor;
+        if (inputStr.includes('白褲') || inputStr.includes('白衣')) pantsColor = '#f8fafc';
+        
+        layerLegs.innerHTML = `
+            <line x1="60" y1="185" x2="45" y2="275" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+            <line x1="100" y1="185" x2="115" y2="275" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+            <path d="M 42 185 L 118 185 L 122 225 L 38 225 Z" fill="${pantsColor}" stroke="#fbbf24" stroke-width="2"/>
+            <path d="M 32 275 L 52 275 L 48 290 L 30 290 Z" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
+            <path d="M 108 275 L 128 275 L 130 290 L 110 290 Z" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
+        `;
+
+        // -------------------------------------------------------------------------
+        // 4. 左右手道具精細解析 (Weapons & Props: 刀、劍、法杖、槍、扇子等)
+        // -------------------------------------------------------------------------
+        let leftItem = 'none';
+        let rightItem = 'none';
+
+        // 語意判定：左手
+        if (inputStr.includes('左')) {
+            if (inputStr.includes('法杖') || inputStr.includes('杖')) leftItem = 'staff';
+            else if (inputStr.includes('刀') || inputStr.includes('劍')) leftItem = 'blade';
+            else if (inputStr.includes('槍') || inputStr.includes('矛')) leftItem = 'spear';
+            else if (inputStr.includes('扇')) leftItem = 'fan';
+        }
+        // 語意判定：右手
+        if (inputStr.includes('右')) {
+            if (inputStr.includes('刀') || inputStr.includes('劍')) rightItem = 'blade';
+            else if (inputStr.includes('法杖') || inputStr.includes('杖')) rightItem = 'staff';
+            else if (inputStr.includes('槍') || inputStr.includes('矛')) rightItem = 'spear';
+            else if (inputStr.includes('扇')) rightItem = 'fan';
+        }
+
+        // 若無明確左右方位，智慧預設分配
+        if (!inputStr.includes('左') && !inputStr.includes('右')) {
+            if (inputStr.includes('法杖') || inputStr.includes('杖')) {
+                leftItem = 'staff';
+                rightItem = 'blade';
+            } else if (inputStr.includes('刀') || inputStr.includes('劍') || inputStr.includes('武器')) {
+                rightItem = 'blade';
+            } else if (inputStr.includes('槍') || inputStr.includes('矛')) {
+                rightItem = 'spear';
+            } else if (inputStr.includes('扇')) {
+                leftItem = 'fan';
+            }
+        }
+
+        renderDetailedProp(leftPropSlot, leftItem);
+        renderDetailedProp(rightPropSlot, rightItem);
+
+        statusEl.innerText = `組裝完成！目前呈現：${inputStr}`;
+    }
+
+    // 繪製高擬真、非簡單幾何的精細道具
+    function renderDetailedProp(slot, type) {
+        slot.innerHTML = '';
+        if (type === 'none') return;
+
+        let elem = document.createElementNS("http://www.w3.org/2000/svg", "path");
+
+        if (type === 'blade') {
+            // 精細厚背大彎刀（絕非簡單三角形）
+            elem.setAttribute("d", "M 0 0 C 20 -30 55 -65 75 -50 C 60 -40 30 -15 0 30 Z M 0 30 L -8 42 L 4 45 Z");
+            elem.setAttribute("fill", "#e2e8f0");
+            elem.setAttribute("stroke", "#334155");
+            elem.setAttribute("stroke-width", "1.5");
+        } else if (type === 'staff') {
+            // 頂端精緻龍頭/火焰法杖
+            elem.setAttribute("d", "M -3 35 L -3 -70 C -15 -90 15 -90 3 -70 L 3 35 Z M 0 -80 C 12 -95 12 -65 0 -80 Z");
+            elem.setAttribute("fill", "#fde047");
+            elem.setAttribute("stroke", "#ca8a04");
+            elem.setAttribute("stroke-width", "1.5");
+        } else if (type === 'spear') {
+            // 長槍
+            elem.setAttribute("d", "M -2 40 L -2 -80 L -10 -90 L 0 -115 L 10 -90 L 2 -80 L 2 40 Z");
+            elem.setAttribute("fill", "#cbd5e1");
+            elem.setAttribute("stroke", "#475569");
+            elem.setAttribute("stroke-width", "1");
+        } else if (type === 'fan') {
+            // 摺扇
+            elem.setAttribute("d", "M 0 0 L -30 -45 Q 0 -65 30 -45 Z");
+            elem.setAttribute("fill", "#93c5fd");
+            elem.setAttribute("stroke", "#1e40af");
+            elem.setAttribute("stroke-width", "1");
+        }
+
+        slot.appendChild(elem);
+    }
+
+    function startVoice() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('您的瀏覽器不支援語音辨識，請使用 Google Chrome。');
+            return;
+        }
+        
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'zh-TW';
+        
+        recognition.onresult = function(event) {
+            const speechToText = event.results[0][0].transcript;
+            document.getElementById('textInput').value = speechToText;
+            buildPuppet(speechToText);
+        };
+        
+        recognition.start();
+        document.getElementById('status').innerText = '🎤 正在聆聽您的指令...';
+    }
+</script>
+
+</body>
+</html>
